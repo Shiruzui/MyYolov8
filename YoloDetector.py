@@ -45,6 +45,17 @@ class YOLODetector:
             print(f"{key}: {value}")
         print(f"Output directory: {self.output_dir}")
 
+    def initialize_video_writer(self, cap, file_name):
+        fourcc = cv2.VideoWriter.fourcc(*'mp4v')
+        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        out_path = os.path.join(self.output_dir, file_name)
+        out = cv2.VideoWriter(out_path, fourcc, 20.0, (width, height), True)
+        if not out.isOpened():
+            logging.error(f"Failed to open video writer for the file: {out_path}")
+            return None
+        return out
+
     def run_video(self, video_path: str, save_output=False) -> None:
         cap = cv2.VideoCapture(video_path)
         self.process_stream(cap, save_output, os.path.basename(video_path))
@@ -63,26 +74,13 @@ class YOLODetector:
         cv2.destroyAllWindows()
 
     def process_stream(self, cap, save_output, file_name):
-        out = None
-        if save_output:
-            fourcc = cv2.VideoWriter.fourcc(*'mp4v')
-            # Ensure the resolution is correctly captured
-            width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-            height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-            out_path = os.path.join(self.output_dir, file_name)
-            out = cv2.VideoWriter(out_path, fourcc, 20.0, (width, height), True)
-
-            # Check if VideoWriter was successfully initialized
-            if not out.isOpened():
-                logging.error(f"Failed to open video writer for the file: {out_path}")
-                save_output = False  # Disable saving because the VideoWriter didn't initialize properly
-
+        out = self.initialize_video_writer(cap, file_name) if save_output else None
         try:
             while True:
                 ret, frame = cap.read()
                 if not ret:
                     break
-                self.process_frame(frame, save_output, file_name, out if save_output else None)
+                self.process_frame(frame, save_output, file_name, out)
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
         finally:
@@ -91,19 +89,22 @@ class YOLODetector:
                 out.release()
             cv2.destroyAllWindows()
 
-    def process_frame(self, frame, save_output, file_name, out=None):
-        results = self.model.predict(frame)
-        plot_bboxes(frame, results[0].boxes.data, **self.config)
-        cv2.imshow('Detecção de Objetos', frame)
+    def save_frame_or_image(self, frame, save_output, file_name, out=None):
         if save_output:
             if out:
                 out.write(frame)
             else:
                 cv2.imwrite(os.path.join(self.output_dir, file_name), frame)
 
+    def process_frame(self, frame, save_output, file_name, out=None):
+        results = self.model.predict(frame)
+        plot_bboxes(frame, results[0].boxes.data, **self.config)
+        cv2.imshow('Object Detection', frame)
+        self.save_frame_or_image(frame, save_output, file_name, out)
+
 
 if __name__ == '__main__':
     detector = YOLODetector()
     detector.show_config()
     detector.run_video('videos/carolsdogshort.mp4', save_output=True)
-    # detector.run_image('images/gato.jpeg', save_output=True)
+    detector.run_image('images/gato.jpeg', save_output=True)
