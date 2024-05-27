@@ -9,9 +9,6 @@ from plot_boxes import plot_bboxes
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
-
 logging.info(torch.cuda.is_available())
 ultralytics.checks()
 logging.info(cv2.__version__)
