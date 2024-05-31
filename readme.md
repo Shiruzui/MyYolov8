@@ -6,7 +6,7 @@ This Python-based project enables object detection using YOLOv10 and YOLOv8 mode
 ## Installation
 
 ### Prerequisites
-- Python 3.8 or later
+- Python 3.8 or < 3.12
 - OpenCV
 - Numpy
 - PyTorch
